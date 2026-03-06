@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaxEcon — Supply, Demand & Taxes</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: #111827;
+    --panel2: #1a2235;
+    --accent: #f0c040;
+    --accent2: #ff6b6b;
+    --accent3: #4ecdc4;
+    --accent4: #a78bfa;
+    --text: #e8eaf6;
+    --muted: #6b7280;
+    --supply: #4ecdc4;
+    --demand: #ff6b6b;
+    --new-supply: #22d3ee;
+    --new-demand: #fb923c;
+    --eq: #f0c040;
+    --tax-fill: rgba(240,192,64,0.15);
+    --deadweight: rgba(255,107,107,0.2);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(78,205,196,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 50% at 90% 80%, rgba(167,139,250,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(240,192,64,0.04) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,14,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(240,192,64,0.2);
+    padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 60px;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.3rem;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent3); }
+  .nav-tabs {
+    display: flex; gap: 4px;
+  }
+  .nav-tab {
+    padding: 6px 14px; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.8rem;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--muted); transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .nav-tab:hover { color: var(--text); background: var(--panel2); }
+  .nav-tab.active { background: var(--accent); color: #0a0e1a; }
+  .progress-bar {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .prog-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); transition: background 0.3s;
+  }
+  .prog-dot.done { background: var(--accent3); }
+  .prog-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  /* PAGES */
+  .page { display: none; animation: fadeIn 0.4s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 1;
+    min-height: calc(100vh - 60px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 3rem 2rem;
+  }
+  .hero-tag {
+    background: rgba(78,205,196,0.15); border: 1px solid rgba(78,205,196,0.4);
+    color: var(--accent3); padding: 5px 14px; border-radius: 20px;
+    font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 1px;
+    margin-bottom: 1.5rem; display: inline-block;
+  }
+  .hero h1 {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: clamp(2.8rem, 6vw, 5rem); line-height: 1.05;
+    letter-spacing: -2px; margin-bottom: 1rem;
+  }
+  .hero h1 .y { color: var(--accent); }
+  .hero h1 .g { color: var(--accent3); }
+  .hero p {
+    max-width: 520px; color: #9ca3af; font-size: 1.05rem; line-height: 1.7;
+    margin-bottom: 2.5rem;
+  }
+  .btn-primary {
+    background: var(--accent); color: #0a0e1a;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+    padding: 14px 36px; border-radius: 12px; border: none; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.3px;
+    box-shadow: 0 4px 24px rgba(240,192,64,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(240,192,64,0.4); }
+  .hero-cards {
+    display: flex; gap: 1rem; margin-top: 3rem; flex-wrap: wrap; justify-content: center;
+  }
+  .hero-card {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 1rem 1.4rem;
+    font-size: 0.85rem; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-card .icon { font-size: 1.2rem; }
+
+  /* CONTENT LAYOUT */
+  .content {
+    max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem;
+    position: relative; z-index: 1;
+  }
+  .section-header {
+    margin-bottom: 2rem;
+  }
+  .section-tag {
+    font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 2px;
+    color: var(--accent3); text-transform: uppercase; margin-bottom: 0.5rem;
+  }
+  .section-header h2 {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 2rem;
+    letter-spacing: -1px; line-height: 1.1;
+  }
+  .section-header p { color: var(--muted); font-size: 0.95rem; margin-top: 0.5rem; }
+
+  /* CARDS */
+  .card {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 1.5rem;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem;
+    margin-bottom: 0.8rem;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+  @media(max-width:700px){ .grid-2,.grid-3{ grid-template-columns:1fr; } }
+
+  /* SUPPLY/DEMAND CHART */
+  .chart-wrap {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 1.5rem;
+    position: relative;
+  }
+  canvas.sd-chart {
+    width: 100%; height: auto; display: block;
+    border-radius: 8px;
+  }
+  .chart-controls {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem;
+  }
+  .ctrl-btn {
+    padding: 7px 16px; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.78rem;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.12);
+    background: var(--panel2); color: var(--text); transition: all 0.2s;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.active { background: var(--accent); color: #0a0e1a; border-color: var(--accent); }
+
+  /* LEGEND */
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-top: 1rem;
+    font-size: 0.8rem; font-family: 'DM Mono', monospace;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 3px; border-radius: 2px; }
+
+  /* INFO BLOCKS */
+  .info-block {
+    background: var(--panel2); border-radius: 12px; padding: 1rem 1.2rem;
+    border-left: 3px solid var(--accent);
+    font-size: 0.88rem; line-height: 1.6; color: #d1d5db;
+  }
+  .info-block.teal { border-color: var(--accent3); }
+  .info-block.red { border-color: var(--accent2); }
+  .info-block.purple { border-color: var(--accent4); }
+  .info-block strong { color: var(--text); }
+
+  /* BADGES */
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 0.72rem; font-family: 'DM Mono', monospace; font-weight: 500;
+  }
+  .badge-yellow { background: rgba(240,192,64,0.15); color: var(--accent); border: 1px solid rgba(240,192,64,0.3); }
+  .badge-teal   { background: rgba(78,205,196,0.12); color: var(--accent3); border: 1px solid rgba(78,205,196,0.3); }
+  .badge-red    { background: rgba(255,107,107,0.12); color: var(--accent2); border: 1px solid rgba(255,107,107,0.3); }
+  .badge-purple { background: rgba(167,139,250,0.12); color: var(--accent4); border: 1px solid rgba(167,139,250,0.3); }
+
+  /* SLIDER */
+  .slider-group { display: flex; flex-direction: column; gap: 8px; }
+  .slider-label { font-size: 0.8rem; color: var(--muted); display: flex; justify-content: space-between; }
+  .slider-label span { color: var(--accent); font-family: 'DM Mono', monospace; }
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    background: rgba(255,255,255,0.1); border-radius: 4px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    background: var(--accent); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 8px rgba(240,192,64,0.5);
+  }
+
+  /* QUIZ */
+  .quiz-container { max-width: 640px; margin: 0 auto; }
+  .quiz-question {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem;
+  }
+  .quiz-q-text {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem;
+    margin-bottom: 1.2rem; line-height: 1.4;
+  }
+  .quiz-options { display: flex; flex-direction: column; gap: 10px; }
+  .quiz-opt {
+    background: var(--panel2); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 12px 16px; cursor: pointer;
+    font-size: 0.9rem; transition: all 0.2s; text-align: left;
+    color: var(--text);
+  }
+  .quiz-opt:hover { border-color: var(--accent); color: var(--accent); }
+  .quiz-opt.correct { background: rgba(78,205,196,0.15); border-color: var(--accent3); color: var(--accent3); }
+  .quiz-opt.wrong { background: rgba(255,107,107,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .quiz-feedback {
+    padding: 10px 14px; border-radius: 8px; font-size: 0.85rem;
+    margin-top: 1rem; display: none; line-height: 1.5;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: rgba(78,205,196,0.12); color: var(--accent3); }
+  .quiz-feedback.wrong { background: rgba(255,107,107,0.12); color: var(--accent2); }
+  .quiz-score {
+    text-align: center; padding: 2rem;
+    font-family: 'Syne', sans-serif;
+  }
+  .score-num { font-size: 4rem; font-weight: 800; color: var(--accent); }
+
+  /* TAX TYPE CARDS */
+  .tax-type-card {
+    background: var(--panel); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 1.5rem; position: relative; overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .tax-type-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); }
+  .tax-type-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .tax-type-card.progressive::before { background: linear-gradient(90deg, var(--accent3), var(--accent)); }
+  .tax-type-card.regressive::before { background: linear-gradient(90deg, var(--accent2), var(--accent4)); }
+  .tax-type-card.proportional::before { background: linear-gradient(90deg, var(--accent4), var(--accent3)); }
+  .tax-type-card .t-icon { font-size: 2.2rem; margin-bottom: 0.8rem; }
+  .tax-type-card h3 { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+  .tax-type-card p { font-size: 0.83rem; color: var(--muted); line-height: 1.6; }
+  .tax-type-card .example { 
+    margin-top: 0.8rem; padding: 8px 12px; border-radius: 8px;
+    background: var(--panel2); font-size: 0.78rem;
+    font-family: 'DM Mono', monospace; color: var(--muted);
+  }
+
+  /* TABS WITHIN PAGE */
+  .inner-tabs {
+    display: flex; gap: 6px; margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1rem;
+  }
+  .inner-tab {
+    padding: 7px 16px; border-radius: 8px;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.82rem;
+    cursor: pointer; border: 1px solid transparent;
+    background: transparent; color: var(--muted); transition: all 0.2s;
+  }
+  .inner-tab:hover { color: var(--text); }
+  .inner-tab.active { border-color: rgba(240,192,64,0.4); color: var(--accent); background: rgba(240,192,64,0.07); }
+  .inner-content { display: none; }
+  .inner-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.8rem;
+       padding: 10px 14px; text-align: left; color: var(--muted);
+       border-bottom: 1px solid rgba(255,255,255,0.08); letter-spacing: 0.5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* STEP INDICATOR */
+  .steps { display: flex; gap: 0; margin-bottom: 2rem; }
+  .step {
+    flex: 1; text-align: center; position: relative; padding-bottom: 1rem;
+  }
+  .step::after {
+    content: ''; position: absolute; top: 15px; left: 50%; right: -50%;
+    height: 2px; background: rgba(255,255,255,0.1);
+  }
+  .step:last-child::after { display: none; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--panel2); border: 2px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 0.5rem; font-family: 'DM Mono', monospace;
+    font-size: 0.8rem; position: relative; z-index: 1; transition: all 0.3s;
+  }
+  .step.done .step-num { background: var(--accent3); border-color: var(--accent3); color: #0a0e1a; }
+  .step.active .step-num { background: var(--accent); border-color: var(--accent); color: #0a0e1a; box-shadow: 0 0 12px rgba(240,192,64,0.4); }
+  .step-label { font-size: 0.72rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* SIMULATION READOUT */
+  .readout {
+    background: var(--panel2); border-radius: 12px; padding: 1rem 1.2rem;
+    font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+  }
+  .readout-item { display: flex; justify-content: space-between; align-items: center; }
+  .readout-val { color: var(--accent); }
+  .readout-val.up { color: var(--accent3); }
+  .readout-val.down { color: var(--accent2); }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 3px; }
+
+  /* DIVIDER */
+  .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2rem 0; }
+
+  /* PILL */
+  .pill { padding: 2px 10px; border-radius: 20px; font-size: 0.72rem; font-family: 'DM Mono', monospace; }
+
+  /* NAV NEXT/PREV */
+  .page-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.5rem 0;
+  }
+  .btn-sec {
+    padding: 10px 24px; border-radius: 10px;
+    font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.88rem;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.15);
+    background: transparent; color: var(--text); transition: all 0.2s;
+  }
+  .btn-sec:hover { background: var(--panel2); border-color: rgba(255,255,255,0.25); }
+
+  /* TOOLTIP */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap:hover .tooltip-box { opacity: 1; pointer-events: auto; transform: translateY(-4px); }
+  .tooltip-box {
+    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    background: #1e2d40; border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px; padding: 8px 12px; font-size: 0.78rem; width: 200px;
+    color: var(--text); opacity: 0; pointer-events: none; transition: all 0.2s;
+    z-index: 10; line-height: 1.5;
+  }
+  .underline-hint {
+    border-bottom: 1px dashed var(--muted); cursor: help;
+    font-size: inherit;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Tax<span>Econ</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="goPage('home')">Home</button>
+    <button class="nav-tab" onclick="goPage('basics')">Basics</button>
+    <button class="nav-tab" onclick="goPage('consumer-tax')">Consumer Tax</button>
+    <button class="nav-tab" onclick="goPage('producer-tax')">Producer Tax</button>
+    <button class="nav-tab" onclick="goPage('tax-types')">Tax Types</button>
+    <button class="nav-tab" onclick="goPage('quiz')">Quiz 🎯</button>
+  </div>
+  <div class="progress-bar" id="progBar">
+    <div class="prog-dot current" id="pd0"></div>
+    <div class="prog-dot" id="pd1"></div>
+    <div class="prog-dot" id="pd2"></div>
+    <div class="prog-dot" id="pd3"></div>
+    <div class="prog-dot" id="pd4"></div>
+    <div class="prog-dot" id="pd5"></div>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-tag">📊 Economics for High Schoolers</div>
+    <h1>Supply, Demand<br>&amp; <span class="y">Taxes</span> <span class="g">Explained</span></h1>
+    <p>Discover how taxes shift markets, who really pays them, and what happens to prices and quantities when governments step in.</p>
+    <button class="btn-primary" onclick="goPage('basics')">Start Learning →</button>
+    <div class="hero-cards">
+      <div class="hero-card"><span class="icon">📈</span> Interactive Charts</div>
+      <div class="hero-card"><span class="icon">🧮</span> Live Simulations</div>
+      <div class="hero-card"><span class="icon">🎯</span> Quiz & Score</div>
+      <div class="hero-card"><span class="icon">💡</span> Real Examples</div>
+    </div>
+  </div>
+</div>
+
+<!-- BASICS PAGE -->
+<div class="page" id="page-basics">
+  <div class="content">
+    <div class="section-header">
+      <div class="section-tag">Module 1 — Foundations</div>
+      <h2>Supply & Demand Basics</h2>
+      <p>Before we get to taxes, let's understand the model that governs all markets.</p>
+    </div>
+
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="innerTab(this,'b-model')">The Model</button>
+      <button class="inner-tab" onclick="innerTab(this,'b-equilibrium')">Equilibrium</button>
+      <button class="inner-tab" onclick="innerTab(this,'b-shifts')">Shifts</button>
+    </div>
+
+    <div class="inner-content active" id="b-model">
+      <div class="grid-2">
+        <div>
+          <div class="card" style="border-color:rgba(78,205,196,0.3);">
+            <div class="card-title" style="color:var(--accent3)">📉 Demand Curve</div>
+            <p style="font-size:0.85rem;color:var(--muted);line-height:1.7">As <strong style="color:var(--text)">price goes up</strong>, buyers want less. As <strong style="color:var(--text)">price falls</strong>, buyers want more. This inverse relationship creates a downward-sloping line.</p>
+            <div class="info-block teal" style="margin-top:1rem">
+              <strong>Key idea:</strong> Buyers respond to prices. High prices = fewer purchases. Low prices = more purchases.
+            </div>
+          </div>
+          <div class="card" style="border-color:rgba(255,107,107,0.3);margin-top:1rem;">
+            <div class="card-title" style="color:var(--accent2)">📈 Supply Curve</div>
+            <p style="font-size:0.85rem;color:var(--muted);line-height:1.7">As <strong style="color:var(--text)">price rises</strong>, producers want to sell more. As price falls, they supply less. This creates an upward-sloping line.</p>
+            <div class="info-block red" style="margin-top:1rem">
+              <strong>Key idea:</strong> Sellers respond to prices too. Higher prices = more profitable to produce = more supply.
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:1rem;color:var(--muted)">Basic Supply & Demand</div>
+          <canvas id="basicChart" width="400" height="320"></canvas>
+          <div class="legend" style="margin-top:0.8rem">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--demand);width:20px"></div> Demand</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--supply);width:20px"></div> Supply</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--eq);width:8px;height:8px;border-radius:50%"></div> Equilibrium</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-content" id="b-equilibrium">
+      <div class="grid-2">
+        <div>
+          <div class="info-block" style="margin-bottom:1rem">
+            <strong>Equilibrium</strong> is the magic spot where supply equals demand — where the two curves cross. At this point, the market "clears": every buyer who wants to buy at that price can, and every seller who wants to sell at that price can.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.85rem">Equilibrium Price (P*)</span>
+                <span class="badge badge-yellow">Where S = D</span>
+              </div>
+              <p style="font-size:0.8rem;color:var(--muted);margin-top:6px">The price at which quantity supplied = quantity demanded.</p>
+            </div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.85rem">Equilibrium Quantity (Q*)</span>
+                <span class="badge badge-teal">Market Volume</span>
+              </div>
+              <p style="font-size:0.8rem;color:var(--muted);margin-top:6px">Total amount of goods bought and sold at the equilibrium price.</p>
+            </div>
+            <div class="card" style="border-color:rgba(255,107,107,0.3);">
+              <div class="card-title" style="font-size:0.85rem">⚠️ Out of Equilibrium</div>
+              <p style="font-size:0.8rem;color:var(--muted)"><strong style="color:var(--accent2)">Surplus:</strong> Price too high → more supply than demand<br><strong style="color:var(--accent3)">Shortage:</strong> Price too low → more demand than supply</p>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:1rem;color:var(--muted)">Equilibrium Point</div>
+          <canvas id="eqChart" width="400" height="320"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-content" id="b-shifts">
+      <div class="grid-2">
+        <div>
+          <div class="info-block" style="margin-bottom:1rem">
+            <strong>Shifts vs. Movement along the curve:</strong><br>
+            Moving along a curve = responding to price changes.<br>
+            Shifting the whole curve = something else changes (income, costs, preferences, technology).
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="card" style="border-color:rgba(255,107,107,0.3)">
+              <div class="card-title" style="color:var(--accent2);font-size:0.85rem">↗ Demand Shifters</div>
+              <ul style="font-size:0.8rem;color:var(--muted);padding-left:1rem;line-height:2">
+                <li>Income increases → demand shifts right</li>
+                <li>Substitute goods become cheaper → demand shifts left</li>
+                <li>Tastes & preferences change</li>
+                <li>Number of buyers changes</li>
+              </ul>
+            </div>
+            <div class="card" style="border-color:rgba(78,205,196,0.3)">
+              <div class="card-title" style="color:var(--accent3);font-size:0.85rem">↗ Supply Shifters</div>
+              <ul style="font-size:0.8rem;color:var(--muted);padding-left:1rem;line-height:2">
+                <li>Production costs fall → supply shifts right</li>
+                <li>Technology improves → supply shifts right</li>
+                <li>Input prices rise → supply shifts left</li>
+                <li><strong>TAX on producers → supply shifts left ←</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="shiftChart" width="400" height="300"></canvas>
+          <div class="chart-controls">
+            <button class="ctrl-btn active" onclick="showShift('demand')">Demand Shifts Right</button>
+            <button class="ctrl-btn" onclick="showShift('supply')">Supply Shifts Left</button>
+            <button class="ctrl-btn" onclick="showShift('reset')">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <button class="btn-sec" onclick="goPage('home')">← Back</button>
+      <button class="btn-primary" onclick="goPage('consumer-tax')">Consumer Tax →</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONSUMER TAX PAGE -->
+<div class="page" id="page-consumer-tax">
+  <div class="content">
+    <div class="section-header">
+      <div class="section-tag">Module 2 — Consumer Tax</div>
+      <h2>Tax on <span style="color:var(--accent2)">Consumers</span></h2>
+      <p>What happens when the government charges buyers a tax? Adjust the slider and watch the market respond.</p>
+    </div>
+
+    <div class="steps">
+      <div class="step done" id="cs1"><div class="step-num">✓</div><div class="step-label">LEARN</div></div>
+      <div class="step active" id="cs2"><div class="step-num">2</div><div class="step-label">SIMULATE</div></div>
+      <div class="step" id="cs3"><div class="step-num">3</div><div class="step-label">ANALYZE</div></div>
+    </div>
+
+    <div class="grid-2" style="gap:1.5rem">
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="info-block red">
+          <strong>How a consumer tax works:</strong><br>
+          A tax per unit is added on top of the market price — like a sales tax. This makes buying <em>more expensive</em> for consumers, so they demand less at every price level.
+        </div>
+        <div class="card">
+          <div class="card-title">🎮 Adjust Tax Amount</div>
+          <div class="slider-group">
+            <div class="slider-label">Consumer Tax per unit <span id="ctaxVal">$0</span></div>
+            <input type="range" min="0" max="60" value="0" id="ctaxSlider" oninput="updateConsumerTax(this.value)">
+          </div>
+        </div>
+        <div class="readout" id="ctaxReadout">
+          <div class="readout-item">Original Price <span class="readout-val" id="cr-op">$50</span></div>
+          <div class="readout-item">New Consumer Price <span class="readout-val up" id="cr-cp">$50</span></div>
+          <div class="readout-item">Producer Receives <span class="readout-val" id="cr-pr">$50</span></div>
+          <div class="readout-item">Quantity Traded <span class="readout-val down" id="cr-q">100</span></div>
+          <div class="readout-item">Gov Revenue <span class="readout-val" id="cr-gr">$0</span></div>
+          <div class="readout-item">Deadweight Loss <span class="readout-val down" id="cr-dl">$0</span></div>
+        </div>
+        <div class="info-block" id="ctax-insight">
+          <strong>💡 Set a tax to see its effects!</strong>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:1rem;color:var(--muted)">Consumer Tax Model</div>
+        <canvas id="ctaxChart" width="420" height="340"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--demand);width:20px"></div> Original Demand</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--new-demand);width:20px;border-style:dashed"></div> Demand After Tax</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(240,192,64,0.4);width:20px;height:10px"></div> Tax Revenue</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-header">
+      <h2 style="font-size:1.4rem">Key Concepts: Tax Incidence</h2>
+    </div>
+    <div class="grid-3">
+      <div class="card" style="border-color:rgba(255,107,107,0.3)">
+        <div class="card-title" style="color:var(--accent2)">💸 Who Really Pays?</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7">Even though the tax is <em>legally</em> on consumers, the <strong style="color:var(--text)">burden is shared</strong>. Producers receive less than before, consumers pay more. The split depends on elasticity.</p>
+      </div>
+      <div class="card" style="border-color:rgba(240,192,64,0.3)">
+        <div class="card-title" style="color:var(--accent)">📦 Deadweight Loss</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7">Trades that <em>would have happened</em> without the tax no longer occur. This lost economic value — the <strong style="color:var(--text)">deadweight loss</strong> — is a cost to society.</p>
+      </div>
+      <div class="card" style="border-color:rgba(78,205,196,0.3)">
+        <div class="card-title" style="color:var(--accent3)">🏛️ Government Revenue</div>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.7">The rectangle between the old and new price × new quantity = tax revenue collected. This funds public goods like roads and schools.</p>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <button class="btn-sec" onclick="goPage('basics')">← Basics</button>
+      <button class="btn-primary" onclick="goPage('producer-tax')">Producer Tax →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCER TAX PAGE -->
+<div class="page" id="page-producer-tax">
+  <div class="content">
+    <div class="section-header">
+      <div class="section-tag">Module 3 — Producer Tax</div>
+      <h2>Tax on <span style="color:var(--accent3)">Producers</span></h2>
+      <p>Now what if the government taxes sellers instead? The legal payer changes — but the economic outcome is surprisingly similar!</p>
+    </div>
+
+    <div class="grid-2" style="gap:1.5rem">
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="info-block teal">
+          <strong>How a producer tax works:</strong><br>
+          A per-unit tax increases production costs. Producers need a higher price to supply the same quantity, so the <em>supply curve shifts left</em> (upward). Less is produced and sold.
+        </div>
+        <div class="card">
+          <div class="card-title">🎮 Adjust Tax Amount</div>
+          <div class="slider-group">
+            <div class="slider-label">Producer Tax per unit <span id="ptaxVal">$0</span></div>
+            <input type="range" min="0" max="60" value="0" id="ptaxSlider" oninput="updateProducerTax(this.value)">
+          </div>
+        </div>
+        <div class="readout" id="ptaxReadout">
+          <div class="readout-item">Original Price <span class="readout-val" id="pr-op">$50</span></div>
+          <div class="readout-item">Consumer Pays <span class="readout-val up" id="pr-cp">$50</span></div>
+          <div class="readout-item">Producer Receives <span class="readout-val down" id="pr-pr">$50</span></div>
+          <div class="readout-item">Quantity Traded <span class="readout-val down" id="pr-q">100</span></div>
+          <div class="readout-item">Gov Revenue <span class="readout-val" id="pr-gr">$0</span></div>
+          <div class="readout-item">Deadweight Loss <span class="readout-val down" id="pr-dl">$0</span></div>
+        </div>
+        <div class="info-block teal" id="ptax-insight">
+          <strong>💡 Set a tax to see its effects!</strong>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;margin-bottom:1rem;color:var(--muted)">Producer Tax Model</div>
+        <canvas id="ptaxChart" width="420" height="340"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--supply);width:20px"></div> Original Supply</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--new-supply);width:20px"></div> Supply After Tax</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(240,192,64,0.4);width:20px;height:10px"></div> Tax Revenue</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-header">
+      <h2 style="font-size:1.4rem">⚖️ Consumer Tax vs. Producer Tax: Are They Different?</h2>
+    </div>
+    <div class="info-block purple" style="margin-bottom:1.5rem">
+      <strong>The Tax Equivalence Theorem:</strong> Economically, a tax on consumers and a tax on producers of the same amount produce <em>identical outcomes</em> — same equilibrium price wedge, same quantity, same deadweight loss, same government revenue. The only difference is <em>who writes the check to the government</em>.
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Effect</th>
+            <th><span style="color:var(--accent2)">Tax on Consumer</span></th>
+            <th><span style="color:var(--accent3)">Tax on Producer</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Curve that shifts</td><td>Demand shifts LEFT ←</td><td>Supply shifts LEFT ←</td></tr>
+          <tr><td>Consumer price</td><td style="color:var(--accent2)">↑ Rises</td><td style="color:var(--accent2)">↑ Rises (same amount)</td></tr>
+          <tr><td>Producer price received</td><td style="color:var(--accent3)">↓ Falls</td><td style="color:var(--accent3)">↓ Falls (same amount)</td></tr>
+          <tr><td>Quantity traded</td><td style="color:var(--accent)">↓ Falls</td><td style="color:var(--accent)">↓ Falls (same amount)</td></tr>
+          <tr><td>Gov revenue</td><td>Tax × New Q</td><td>Tax × New Q (same)</td></tr>
+          <tr><td>Deadweight loss</td><td>Exists</td><td>Same amount</td></tr>
+          <tr><td>Economic burden split</td><td colspan="2" style="color:var(--accent4)">Determined by elasticity — not who legally pays</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav">
+      <button class="btn-sec" onclick="goPage('consumer-tax')">← Consumer Tax</button>
+      <button class="btn-primary" onclick="goPage('tax-types')">Tax Types →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAX TYPES PAGE -->
+<div class="page" id="page-tax-types">
+  <div class="content">
+    <div class="section-header">
+      <div class="section-tag">Module 4 — Tax Systems</div>
+      <h2>Types of Taxes & Income Tax</h2>
+      <p>From sales tax to income tax, governments use many tools. Here's how they work — and who bears the burden.</p>
+    </div>
+
+    <div class="inner-tabs">
+      <button class="inner-tab active" onclick="innerTab(this,'tt-structure')">Tax Structure</button>
+      <button class="inner-tab" onclick="innerTab(this,'tt-income')">Income Tax</button>
+      <button class="inner-tab" onclick="innerTab(this,'tt-types')">Other Taxes</button>
+      <button class="inner-tab" onclick="innerTab(this,'tt-compare')">Compare</button>
+    </div>
+
+    <div class="inner-content active" id="tt-structure">
+      <div class="grid-3" style="margin-bottom:1.5rem">
+        <div class="tax-type-card progressive">
+          <div class="t-icon">📈</div>
+          <div class="badge badge-teal" style="margin-bottom:0.5rem">PROGRESSIVE</div>
+          <h3>Progressive Tax</h3>
+          <p>Higher earners pay a <strong>larger percentage</strong> of their income. The tax rate increases as income increases.</p>
+          <div class="example">Earn $30k → pay 12%<br>Earn $200k → pay 32%<br>Earn $600k → pay 37%</div>
+        </div>
+        <div class="tax-type-card regressive">
+          <div class="t-icon">📉</div>
+          <div class="badge badge-red" style="margin-bottom:0.5rem">REGRESSIVE</div>
+          <h3>Regressive Tax</h3>
+          <p>Lower earners pay a <strong>larger share</strong> of their income in tax, even if the rate looks flat. Hurts the poor more.</p>
+          <div class="example">Sales tax on food:<br>Poor family: 8% of income<br>Rich family: 0.3% of income</div>
+        </div>
+        <div class="tax-type-card proportional">
+          <div class="t-icon">⚖️</div>
+          <div class="badge badge-purple" style="margin-bottom:0.5rem">PROPORTIONAL</div>
+          <h3>Proportional (Flat) Tax</h3>
+          <p>Everyone pays the <strong>same percentage</strong> regardless of income. Simple, but still debated for fairness.</p>
+          <div class="example">Flat 20% for everyone:<br>Earn $50k → pay $10k<br>Earn $500k → pay $100k</div>
+        </div>
+      </div>
+      <div class="info-block">
+        <strong>🔑 Key insight:</strong> The U.S. federal income tax is <em>progressive</em> — it uses "tax brackets." You don't pay the top rate on all your income, only on the portion above each bracket threshold.
+      </div>
+    </div>
+
+    <div class="inner-content" id="tt-income">
+      <div class="grid-2">
+        <div style="display:flex;flex-direction:column;gap:1rem">
+          <div class="info-block purple">
+            <strong>Income Tax Basics:</strong><br>
+            Income tax is a tax on money you earn — wages, salaries, business profits. In the U.S., the federal government uses a <em>progressive bracket system</em>. States have their own income taxes too (some states have none!).
+          </div>
+          <div class="card">
+            <div class="card-title">🇺🇸 2024 Federal Tax Brackets (Single Filer)</div>
+            <table style="margin-top:0.5rem">
+              <thead><tr><th>Income Range</th><th>Tax Rate</th></tr></thead>
+              <tbody>
+                <tr><td>$0 – $11,600</td><td><span class="badge badge-teal">10%</span></td></tr>
+                <tr><td>$11,601 – $47,150</td><td><span class="badge badge-teal">12%</span></td></tr>
+                <tr><td>$47,151 – $100,525</td><td><span class="badge badge-yellow">22%</span></td></tr>
+                <tr><td>$100,526 – $191,950</td><td><span class="badge badge-yellow">24%</span></td></tr>
+                <tr><td>$191,951 – $243,725</td><td><span class="badge badge-red">32%</span></td></tr>
+                <tr><td>$243,726 – $609,350</td><td><span class="badge badge-red">35%</span></td></tr>
+                <tr><td>Over $609,350</td><td><span class="badge badge-purple">37%</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="info-block red">
+            <strong>⚠️ Common Myth:</strong> "If I get a raise into a higher bracket, I'll take home less." This is FALSE! Only the income <em>above</em> the threshold gets taxed at the higher rate. Your lower income is still taxed at the lower rates.
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">🧮 Income Tax Calculator</div>
+            <div class="slider-group" style="margin-bottom:1rem">
+              <div class="slider-label">Annual Income <span id="incomeVal">$50,000</span></div>
+              <input type="range" min="10000" max="500000" step="1000" value="50000" id="incomeSlider" oninput="calcIncome(this.value)">
+            </div>
+            <div class="readout" id="incomeReadout">
+              <div class="readout-item">Gross Income <span class="readout-val" id="ir-gross">$50,000</span></div>
+              <div class="readout-item">Total Tax <span class="readout-val down" id="ir-tax">$6,307</span></div>
+              <div class="readout-item">Effective Rate <span class="readout-val" id="ir-eff">12.6%</span></div>
+              <div class="readout-item">Marginal Rate <span class="readout-val" id="ir-marg">22%</span></div>
+              <div class="readout-item">Take-Home Pay <span class="readout-val up" id="ir-home">$43,693</span></div>
+              <div class="readout-item">Monthly Take-Home <span class="readout-val up" id="ir-mo">$3,641</span></div>
+            </div>
+          </div>
+          <div class="info-block teal">
+            <strong>Marginal vs. Effective Rate:</strong><br>
+            <em>Marginal rate</em> = the rate on your last dollar earned (your "bracket").<br>
+            <em>Effective rate</em> = total tax ÷ total income. Always lower than marginal rate in a progressive system.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-content" id="tt-types">
+      <div class="grid-2" style="gap:1rem">
+        <div class="card" style="border-color:rgba(240,192,64,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">🛒</div>
+          <div class="card-title">Sales Tax</div>
+          <span class="badge badge-red">REGRESSIVE</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Added to purchases at checkout. Everyone pays the same rate, but it takes a bigger share of a poor person's income. Collected by states (0–10% range). Example: buying a $100 shirt in California → pay $10.25 in tax.</p>
+        </div>
+        <div class="card" style="border-color:rgba(78,205,196,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">💰</div>
+          <div class="card-title">Payroll Tax</div>
+          <span class="badge badge-red">REGRESSIVE</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Funds Social Security & Medicare. Currently 7.65% from employees + 7.65% from employers (15.3% total). Only applies up to ~$168k of wages — so high earners pay a smaller <em>share</em> of their total income.</p>
+        </div>
+        <div class="card" style="border-color:rgba(167,139,250,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">🏠</div>
+          <div class="card-title">Property Tax</div>
+          <span class="badge badge-yellow">PROPORTIONAL</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Based on assessed value of property. Main funding source for local schools and services. Can be regressive in practice because low-income owners may own in over-valued areas.</p>
+        </div>
+        <div class="card" style="border-color:rgba(255,107,107,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">⛽</div>
+          <div class="card-title">Excise Tax / Sin Tax</div>
+          <span class="badge badge-teal">PER-UNIT</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Taxes on specific goods: gasoline, tobacco, alcohol. Designed to reduce consumption of harmful goods and raise revenue. Works exactly like the supply-demand tax model — reduces quantity consumed.</p>
+        </div>
+        <div class="card" style="border-color:rgba(240,192,64,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">📊</div>
+          <div class="card-title">Capital Gains Tax</div>
+          <span class="badge badge-purple">ON INVESTMENT PROFIT</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Tax on profit from selling investments (stocks, real estate). Long-term gains (held 1+ year) taxed at lower rates (0%, 15%, 20%) than regular income. Major debate topic in tax policy.</p>
+        </div>
+        <div class="card" style="border-color:rgba(78,205,196,0.3)">
+          <div style="font-size:1.5rem;margin-bottom:0.5rem">🏦</div>
+          <div class="card-title">Corporate Tax</div>
+          <span class="badge badge-yellow">ON BUSINESS PROFIT</span>
+          <p style="font-size:0.82rem;color:var(--muted);margin-top:0.6rem;line-height:1.7">Tax on business profits. U.S. federal rate is 21%. Economists debate whether corporations "really" pay this — they may pass it on as higher prices (consumer burden) or lower wages (worker burden).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-content" id="tt-compare">
+      <div class="info-block" style="margin-bottom:1.5rem">
+        <strong>Comparing the Tax Burden:</strong> A useful way to evaluate a tax is to ask — <em>as income rises, does the tax rate rise, fall, or stay the same?</em>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="taxCompareChart" width="700" height="320" style="max-width:100%"></canvas>
+        <div class="legend" style="margin-top:1rem;justify-content:center">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent3);width:20px;height:3px"></div> Progressive (Income Tax)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent);width:20px;height:3px"></div> Proportional (Flat Tax)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent2);width:20px;height:3px"></div> Regressive (Sales Tax)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav">
+      <button class="btn-sec" onclick="goPage('producer-tax')">← Producer Tax</button>
+      <button class="btn-primary" onclick="goPage('quiz')">Take the Quiz 🎯</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ PAGE -->
+<div class="page" id="page-quiz">
+  <div class="content">
+    <div class="section-header">
+      <div class="section-tag">Module 5 — Test Your Knowledge</div>
+      <h2>Quiz Time 🎯</h2>
+      <p>10 questions covering everything you've learned. Can you get a perfect score?</p>
+    </div>
+    <div class="quiz-container">
+      <div id="quiz-area"></div>
+      <div id="quiz-result" style="display:none"></div>
+    </div>
+    <div class="page-nav" style="max-width:640px;margin:0 auto">
+      <button class="btn-sec" onclick="goPage('tax-types')">← Tax Types</button>
+      <button class="btn-primary" id="quizNavBtn" onclick="nextQuestion()" style="display:none">Next Question →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// NAVIGATION
+// ============================================================
+const pages = ['home','basics','consumer-tax','producer-tax','tax-types','quiz'];
+let currentPage = 'home';
+
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    t.classList.toggle('active', pages[i] === id);
+  });
+  // update progress dots
+  const idx = pages.indexOf(id);
+  for(let i=0;i<6;i++){
+    const d = document.getElementById('pd'+i);
+    d.className = 'prog-dot' + (i < idx ? ' done' : i === idx ? ' current' : '');
+  }
+  currentPage = id;
+  window.scrollTo(0,0);
+  // init charts on first load
+  if(id==='basics') { initBasicChart(); initEqChart(); initShiftChart(); }
+  if(id==='consumer-tax') { initCtaxChart(); }
+  if(id==='producer-tax') { initPtaxChart(); }
+  if(id==='tax-types') { calcIncome(50000); initTaxCompareChart(); }
+  if(id==='quiz') { initQuiz(); }
+}
+
+function innerTab(btn, targetId) {
+  const parent = btn.closest('.content') || btn.closest('.page');
+  parent.querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  parent.querySelectorAll('.inner-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(targetId).classList.add('active');
+  if(targetId==='tt-compare') setTimeout(initTaxCompareChart, 50);
+}
+
+// ============================================================
+// CHART HELPERS
+// ============================================================
+const chartCache = {};
+
+function getCtx(id) {
+  return document.getElementById(id).getContext('2d');
+}
+
+function clearAndStyle(ctx, w, h) {
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = '#111827';
+  ctx.fillRect(0,0,w,h);
+}
+
+// Grid helper
+function drawGrid(ctx, ox, oy, cw, ch, nx=5, ny=5) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=nx;i++){
+    const x = ox + i*(cw/nx);
+    ctx.beginPath(); ctx.moveTo(x,oy); ctx.lineTo(x,oy+ch); ctx.stroke();
+  }
+  for(let i=0;i<=ny;i++){
+    const y = oy + i*(ch/ny);
+    ctx.beginPath(); ctx.moveTo(ox,y); ctx.lineTo(ox+cw,y); ctx.stroke();
+  }
+}
+
+// Axis labels
+function drawAxes(ctx, ox, oy, cw, ch, xLabel, yLabel) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox,oy+ch+10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox-10,oy+ch); ctx.lineTo(ox+cw,oy+ch); ctx.stroke();
+  ctx.fillStyle = '#6b7280'; ctx.font = '11px DM Mono, monospace'; ctx.textAlign='center';
+  ctx.fillText(xLabel, ox+cw/2, oy+ch+28);
+  ctx.save(); ctx.translate(ox-28, oy+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(yLabel, 0, 0); ctx.restore();
+}
+
+// ============================================================
+// BASIC CHART
+// ============================================================
+let basicChartInited = false;
+function initBasicChart() {
+  if(basicChartInited) return; basicChartInited=true;
+  const c = document.getElementById('basicChart');
+  c.width = 400; c.height = 320;
+  const ctx = c.getContext('2d');
+  const ox=50,oy=20,cw=320,ch=260;
+  clearAndStyle(ctx,400,320);
+  drawGrid(ctx,ox,oy,cw,ch);
+  drawAxes(ctx,ox,oy,cw,ch,'Quantity','Price');
+  // demand line: P=100-Q/2 → Q=0→P=100, Q=160→P=20
+  const dLine=[[0,100],[160,20]];
+  // supply line: P=20+Q/2
+  const sLine=[[0,20],[160,100]];
+  function px(q){ return ox + (q/160)*cw; }
+  function py(p){ return oy+ch - ((p-10)/(110-10))*ch; }
+  // fill consumer surplus
+  ctx.fillStyle='rgba(255,107,107,0.08)';
+  ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(80),py(60)); ctx.lineTo(px(0),py(60)); ctx.closePath(); ctx.fill();
+  // fill producer surplus
+  ctx.fillStyle='rgba(78,205,196,0.08)';
+  ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(80),py(60)); ctx.lineTo(px(0),py(60)); ctx.closePath(); ctx.fill();
+  // demand
+  ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5; ctx.beginPath();
+  ctx.moveTo(px(dLine[0][0]),py(dLine[0][1])); ctx.lineTo(px(dLine[1][0]),py(dLine[1][1])); ctx.stroke();
+  // supply
+  ctx.strokeStyle='#4ecdc4'; ctx.lineWidth=2.5; ctx.beginPath();
+  ctx.moveTo(px(sLine[0][0]),py(sLine[0][1])); ctx.lineTo(px(sLine[1][0]),py(sLine[1][1])); ctx.stroke();
+  // equilibrium dot
+  const eq=[80,60];
+  ctx.fillStyle='#f0c040';
+  ctx.beginPath(); ctx.arc(px(eq[0]),py(eq[1]),6,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(240,192,64,0.4)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(px(0),py(60)); ctx.lineTo(px(80),py(60)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(80),py(60)); ctx.lineTo(px(80),py(10)); ctx.stroke();
+  ctx.setLineDash([]);
+  // labels
+  ctx.fillStyle='#ff6b6b'; ctx.font='bold 12px Syne,sans-serif'; ctx.textAlign='left';
+  ctx.fillText('D',px(155),py(23));
+  ctx.fillStyle='#4ecdc4'; ctx.fillText('S',px(155),py(97));
+  ctx.fillStyle='#f0c040'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='right';
+  ctx.fillText('P*=$60',px(0)-2,py(60)+4);
+  ctx.textAlign='center'; ctx.fillText('Q*=80',px(80),py(10)+12);
+  ctx.fillStyle='rgba(255,107,107,0.6)'; ctx.font='10px Nunito,sans-serif';
+  ctx.fillText('Consumer Surplus',px(25),py(78));
+  ctx.fillStyle='rgba(78,205,196,0.6)';
+  ctx.fillText('Producer Surplus',px(25),py(42));
+}
+
+// ============================================================
+// EQUILIBRIUM CHART
+// ============================================================
+let eqChartInited=false;
+function initEqChart(){
+  if(eqChartInited) return; eqChartInited=true;
+  const c=document.getElementById('eqChart'); c.width=400;c.height=320;
+  const ctx=c.getContext('2d');
+  const ox=50,oy=20,cw=320,ch=260;
+  clearAndStyle(ctx,400,320);
+  drawGrid(ctx,ox,oy,cw,ch);
+  drawAxes(ctx,ox,oy,cw,ch,'Quantity','Price');
+  function px(q){return ox+(q/160)*cw;}
+  function py(p){return oy+ch-((p-10)/100)*ch;}
+  // bands
+  ctx.fillStyle='rgba(255,107,107,0.1)';
+  ctx.fillRect(px(80),oy,cw-px(80)+ox,ch); // surplus zone
+  ctx.fillStyle='rgba(78,205,196,0.1)';
+  ctx.fillRect(ox,oy,px(80)-ox,ch); // shortage zone
+  // curves
+  ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(160),py(20)); ctx.stroke();
+  ctx.strokeStyle='#4ecdc4'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(160),py(100)); ctx.stroke();
+  // eq dot
+  ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(80),py(60),7,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(px(0),py(60)); ctx.lineTo(px(80),py(60)); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px(80),py(60)); ctx.lineTo(px(80),oy+ch+5); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#f0c040'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='right';
+  ctx.fillText('P*=$60',px(0)-2,py(60)+4);
+  ctx.textAlign='center'; ctx.fillStyle='#f0c040';
+  ctx.fillText('Q*=80',px(80),oy+ch+20);
+  // labels
+  ctx.fillStyle='rgba(255,107,107,0.7)'; ctx.font='bold 10px Nunito';
+  ctx.fillText('← SURPLUS →',px(120),py(80));
+  ctx.fillStyle='rgba(78,205,196,0.7)';
+  ctx.fillText('← SHORTAGE →',px(30),py(35));
+  ctx.fillStyle='#ff6b6b'; ctx.font='bold 12px Syne'; ctx.textAlign='left';
+  ctx.fillText('D',px(155),py(23));
+  ctx.fillStyle='#4ecdc4'; ctx.fillText('S',px(155),py(97));
+}
+
+// ============================================================
+// SHIFT CHART
+// ============================================================
+let shiftChartInited=false;
+let shiftState='reset';
+function initShiftChart(){
+  if(shiftChartInited) return; shiftChartInited=true;
+  drawShiftChart('reset');
+}
+
+function showShift(mode){
+  shiftState=mode;
+  document.querySelectorAll('#b-shifts .ctrl-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['demand','supply','reset'][i]===mode);
+  });
+  drawShiftChart(mode);
+}
+
+function drawShiftChart(mode){
+  const c=document.getElementById('shiftChart'); c.width=400;c.height=300;
+  const ctx=c.getContext('2d');
+  const ox=50,oy=20,cw=320,ch=250;
+  clearAndStyle(ctx,400,300);
+  drawGrid(ctx,ox,oy,cw,ch);
+  drawAxes(ctx,ox,oy,cw,ch,'Quantity','Price');
+  function px(q){return ox+(q/160)*cw;}
+  function py(p){return oy+ch-((p-10)/100)*ch;}
+  // original curves (grey)
+  ctx.strokeStyle='rgba(255,107,107,0.3)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(160),py(20)); ctx.stroke();
+  ctx.strokeStyle='rgba(78,205,196,0.3)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(160),py(100)); ctx.stroke();
+  // original eq
+  ctx.fillStyle='rgba(240,192,64,0.5)'; ctx.beginPath(); ctx.arc(px(80),py(60),5,0,Math.PI*2); ctx.fill();
+
+  if(mode==='demand'){
+    // demand shifts right: P=100-Q/2 + 20 = 120-Q/2
+    ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(120)); ctx.lineTo(px(160),py(40)); ctx.stroke();
+    ctx.fillStyle='#ff6b6b'; ctx.font='bold 11px Syne'; ctx.textAlign='left';
+    ctx.fillText("D' (shifted right)",px(5),py(118));
+    // new eq: 120-Q/2=20+Q/2 → Q=100, P=70
+    ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(100),py(70),6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(240,192,64,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(0),py(70)); ctx.lineTo(px(100),py(70)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(100),py(70)); ctx.lineTo(px(100),oy+ch+5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#f0c040'; ctx.font='10px DM Mono'; ctx.textAlign='right';
+    ctx.fillText('P*=$70',px(0)-2,py(70)+4);
+    ctx.textAlign='center'; ctx.fillText('Q*=100',px(100),oy+ch+18);
+    // arrow
+    ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px(60),py(80)); ctx.lineTo(px(80),py(80)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(75),py(76)); ctx.lineTo(px(80),py(80)); ctx.lineTo(px(75),py(84)); ctx.stroke();
+  } else if(mode==='supply'){
+    // supply shifts left: P=20+Q/2 + 20 = 40+Q/2
+    ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(40)); ctx.lineTo(px(120),py(100)); ctx.stroke();
+    ctx.fillStyle='#22d3ee'; ctx.font='bold 11px Syne'; ctx.textAlign='left';
+    ctx.fillText("S' (shifted left)",px(5),py(38));
+    // new eq: 100-Q/2=40+Q/2 → Q=60, P=70
+    ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(60),py(70),6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(240,192,64,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(0),py(70)); ctx.lineTo(px(60),py(70)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(60),py(70)); ctx.lineTo(px(60),oy+ch+5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#f0c040'; ctx.font='10px DM Mono'; ctx.textAlign='right';
+    ctx.fillText('P*=$70',px(0)-2,py(70)+4);
+    ctx.textAlign='center'; ctx.fillText('Q*=60',px(60),oy+ch+18);
+    // arrow
+    ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(px(80),py(85)); ctx.lineTo(px(65),py(85)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(70),py(81)); ctx.lineTo(px(65),py(85)); ctx.lineTo(px(70),py(89)); ctx.stroke();
+  } else {
+    ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(160),py(20)); ctx.stroke();
+    ctx.strokeStyle='#4ecdc4'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(160),py(100)); ctx.stroke();
+    ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(80),py(60),7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ff6b6b'; ctx.font='bold 12px Syne'; ctx.textAlign='left';
+    ctx.fillText('D',px(155),py(23));
+    ctx.fillStyle='#4ecdc4'; ctx.fillText('S',px(155),py(97));
+    ctx.fillStyle='#f0c040'; ctx.font='11px DM Mono'; ctx.textAlign='right';
+    ctx.fillText('Eq: P=$60, Q=80',px(0)-2,py(60)+4);
+  }
+}
+
+// ============================================================
+// CONSUMER TAX CHART
+// ============================================================
+let ctaxChartInited=false;
+function initCtaxChart(){
+  if(ctaxChartInited) return; ctaxChartInited=true;
+  updateConsumerTax(0);
+}
+
+function updateConsumerTax(val){
+  val=parseInt(val);
+  document.getElementById('ctaxVal').textContent='$'+val;
+  document.getElementById('ctaxSlider').value=val;
+  // Model: D: P=100-Q/2, S: P=20+Q/2
+  // With consumer tax t: buyer pays P+t, so demand: P+t=100-Q/2 → P=100-t-Q/2
+  // Equilibrium: 100-t-Q/2=20+Q/2 → Q=(80-t), P_s=20+(80-t)/2=60-t/2
+  // P_consumer=P_s+t=60+t/2
+  const t=val;
+  const Qnew=Math.max(0,80-t);
+  const Ps=60-t/2; // producer receives
+  const Pc=60+t/2; // consumer pays
+  const govRev=t*Qnew;
+  const dwl=0.5*t*(80-Qnew);
+  document.getElementById('cr-op').textContent='$60';
+  document.getElementById('cr-cp').textContent='$'+Pc.toFixed(0);
+  document.getElementById('cr-pr').textContent='$'+Ps.toFixed(0);
+  document.getElementById('cr-q').textContent=Qnew.toFixed(0)+' units';
+  document.getElementById('cr-gr').textContent='$'+govRev.toFixed(0);
+  document.getElementById('cr-dl').textContent='$'+dwl.toFixed(0);
+  const ins=document.getElementById('ctax-insight');
+  if(t===0){
+    ins.innerHTML='<strong>💡 Set a tax to see its effects!</strong>';
+    ins.className='info-block';
+  } else {
+    const cb=(Pc-60)/t*100;
+    const pb=(60-Ps)/t*100;
+    ins.innerHTML=`<strong>📊 Burden split:</strong> Consumers bear ${cb.toFixed(0)}% ($${(Pc-60).toFixed(0)}/unit) and producers bear ${pb.toFixed(0)}% ($${(60-Ps).toFixed(0)}/unit) of the $${t} tax. Market shrinks by ${(80-Qnew)} units — that's the deadweight loss.`;
+    ins.className='info-block red';
+  }
+  drawCtaxChart(t,Qnew,Ps,Pc);
+}
+
+function drawCtaxChart(t,Qnew,Ps,Pc){
+  const c=document.getElementById('ctaxChart'); c.width=420;c.height=340;
+  const ctx=c.getContext('2d');
+  const ox=55,oy=25,cw=330,ch=280;
+  clearAndStyle(ctx,420,340);
+  drawGrid(ctx,ox,oy,cw,ch);
+  drawAxes(ctx,ox,oy,cw,ch,'Quantity','Price');
+  function px(q){return ox+(q/140)*cw;}
+  function py(p){return oy+ch-((p-10)/110)*ch;}
+  // supply stays: P=20+Q/2, demand shifts left by t: P=100-t-Q/2
+  const eqQ=80, eqP=60;
+  if(t>0){
+    // tax revenue rectangle
+    ctx.fillStyle='rgba(240,192,64,0.18)';
+    ctx.fillRect(px(0),py(Pc),px(Qnew)-px(0),py(Ps)-py(Pc));
+    ctx.strokeStyle='rgba(240,192,64,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.strokeRect(px(0),py(Pc),px(Qnew)-px(0),py(Ps)-py(Pc));
+    ctx.setLineDash([]);
+    // deadweight loss triangle
+    ctx.fillStyle='rgba(255,107,107,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(px(Qnew),py(Ps));
+    ctx.lineTo(px(eqQ),py(eqP));
+    ctx.lineTo(px(Qnew),py(Pc));
+    ctx.closePath(); ctx.fill();
+  }
+  // original demand
+  ctx.strokeStyle='rgba(255,107,107,0.4)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(130),py(35)); ctx.stroke(); ctx.setLineDash([]);
+  // new demand (shifted left by t)
+  if(t>0){
+    ctx.strokeStyle='#fb923c'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(100-t)); ctx.lineTo(px(Math.min(130,2*(100-t-10))),py(10)); ctx.stroke();
+    ctx.fillStyle='#fb923c'; ctx.font='bold 11px Syne'; ctx.textAlign='left';
+    ctx.fillText("D' (with tax)",px(2),py(100-t)-5);
+  }
+  // supply
+  ctx.strokeStyle='#4ecdc4'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(130),py(85)); ctx.stroke();
+  // price level lines
+  if(t>0){
+    ctx.strokeStyle='rgba(255,107,107,0.7)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(0),py(Pc)); ctx.lineTo(px(Qnew),py(Pc)); ctx.stroke();
+    ctx.strokeStyle='rgba(78,205,196,0.7)';
+    ctx.beginPath(); ctx.moveTo(px(0),py(Ps)); ctx.lineTo(px(Qnew),py(Ps)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,107,107,0.9)'; ctx.font='10px DM Mono'; ctx.textAlign='right';
+    ctx.fillText('Pc=$'+Pc.toFixed(0),px(0)-3,py(Pc)+4);
+    ctx.fillStyle='rgba(78,205,196,0.9)'; ctx.fillText('Ps=$'+Ps.toFixed(0),px(0)-3,py(Ps)+4);
+    // bracket for tax
+    ctx.strokeStyle='rgba(240,192,64,0.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(px(Qnew)+5,py(Pc)); ctx.lineTo(px(Qnew)+15,py(Pc));
+    ctx.moveTo(px(Qnew)+10,py(Pc)); ctx.lineTo(px(Qnew)+10,py(Ps));
+    ctx.moveTo(px(Qnew)+5,py(Ps)); ctx.lineTo(px(Qnew)+15,py(Ps)); ctx.stroke();
+    ctx.fillStyle='var(--accent)'; ctx.font='bold 10px Syne'; ctx.textAlign='left';
+    ctx.fillText('Tax=$'+t,px(Qnew)+18,(py(Pc)+py(Ps))/2+4);
+  }
+  // equilibrium
+  ctx.fillStyle='rgba(240,192,64,0.7)'; ctx.beginPath(); ctx.arc(px(eqQ),py(eqP),5,0,Math.PI*2); ctx.fill();
+  if(t>0){
+    ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(Qnew),py(Ps),6,0,Math.PI*2); ctx.fill();
+    // new eq dashes
+    ctx.strokeStyle='rgba(240,192,64,0.4)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(Qnew),py(Ps)); ctx.lineTo(px(Qnew),oy+ch); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#f0c040'; ctx.font='10px DM Mono'; ctx.textAlign='center';
+    ctx.fillText('Q='+Qnew.toFixed(0),px(Qnew),oy+ch+18);
+    ctx.fillStyle='rgba(255,107,107,0.8)'; ctx.font='bold 9px Nunito'; ctx.textAlign='center';
+    ctx.fillText('DWL',px((Qnew+eqQ)/2),(py(Ps)+py(Pc)+py(eqP))/3);
+  }
+  ctx.fillStyle='#ff6b6b'; ctx.font='bold 12px Syne'; ctx.textAlign='left';
+  ctx.fillText('D',px(130),py(36));
+  ctx.fillStyle='#4ecdc4'; ctx.fillText('S',px(130),py(84));
+  if(t>0){
+    ctx.fillStyle='rgba(240,192,64,0.8)'; ctx.font='bold 9px Nunito'; ctx.textAlign='center';
+    ctx.fillText('Gov Revenue',px(Qnew/2),(py(Ps)+py(Pc))/2+4);
+  }
+}
+
+// ============================================================
+// PRODUCER TAX CHART
+// ============================================================
+let ptaxChartInited=false;
+function initPtaxChart(){
+  if(ptaxChartInited) return; ptaxChartInited=true;
+  updateProducerTax(0);
+}
+
+function updateProducerTax(val){
+  val=parseInt(val);
+  document.getElementById('ptaxVal').textContent='$'+val;
+  document.getElementById('ptaxSlider').value=val;
+  // Producer tax: supply shifts up by t. New supply: P=20+t+Q/2
+  // Eq: 100-Q/2=20+t+Q/2 → Q=80-t, P_consumer=60+t/2, P_producer=60-t/2
+  const t=val;
+  const Qnew=Math.max(0,80-t);
+  const Pc=60+t/2;
+  const Ps=60-t/2;
+  const govRev=t*Qnew;
+  const dwl=0.5*t*(80-Qnew);
+  document.getElementById('pr-op').textContent='$60';
+  document.getElementById('pr-cp').textContent='$'+Pc.toFixed(0);
+  document.getElementById('pr-pr').textContent='$'+Ps.toFixed(0);
+  document.getElementById('pr-q').textContent=Qnew.toFixed(0)+' units';
+  document.getElementById('pr-gr').textContent='$'+govRev.toFixed(0);
+  document.getElementById('pr-dl').textContent='$'+dwl.toFixed(0);
+  const ins=document.getElementById('ptax-insight');
+  if(t===0){
+    ins.innerHTML='<strong>💡 Set a tax to see its effects!</strong>';
+    ins.className='info-block teal';
+  } else {
+    ins.innerHTML=`<strong>⚖️ Notice:</strong> Same $${t} tax, same results as consumer tax! Consumer pays $${Pc.toFixed(0)} (+$${(Pc-60).toFixed(0)}), producer gets $${Ps.toFixed(0)} (-$${(60-Ps).toFixed(0)}). Quantity = ${Qnew} units. The legal payer <em>does not determine</em> the economic burden.`;
+    ins.className='info-block teal';
+  }
+  drawPtaxChart(t,Qnew,Ps,Pc);
+}
+
+function drawPtaxChart(t,Qnew,Ps,Pc){
+  const c=document.getElementById('ptaxChart'); c.width=420;c.height=340;
+  const ctx=c.getContext('2d');
+  const ox=55,oy=25,cw=330,ch=280;
+  clearAndStyle(ctx,420,340);
+  drawGrid(ctx,ox,oy,cw,ch);
+  drawAxes(ctx,ox,oy,cw,ch,'Quantity','Price');
+  function px(q){return ox+(q/140)*cw;}
+  function py(p){return oy+ch-((p-10)/110)*ch;}
+  const eqQ=80, eqP=60;
+  if(t>0){
+    ctx.fillStyle='rgba(240,192,64,0.18)';
+    ctx.fillRect(px(0),py(Pc),px(Qnew)-px(0),py(Ps)-py(Pc));
+    ctx.strokeStyle='rgba(240,192,64,0.5)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.strokeRect(px(0),py(Pc),px(Qnew)-px(0),py(Ps)-py(Pc)); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,107,107,0.18)';
+    ctx.beginPath();
+    ctx.moveTo(px(Qnew),py(Ps)); ctx.lineTo(px(eqQ),py(eqP)); ctx.lineTo(px(Qnew),py(Pc));
+    ctx.closePath(); ctx.fill();
+  }
+  // demand
+  ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(px(0),py(100)); ctx.lineTo(px(130),py(35)); ctx.stroke();
+  // original supply
+  ctx.strokeStyle='rgba(78,205,196,0.4)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(px(0),py(20)); ctx.lineTo(px(130),py(85)); ctx.stroke(); ctx.setLineDash([]);
+  // new supply (shifted up by t)
+  if(t>0){
+    ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(px(0),py(20+t)); ctx.lineTo(px(Math.min(130,2*(90-t))),py(85+t>110?110:85+t)); ctx.stroke();
+    ctx.fillStyle='#22d3ee'; ctx.font='bold 11px Syne'; ctx.textAlign='left';
+    ctx.fillText("S' (with tax)",px(2),py(20+t)-5);
+  }
+  if(t>0){
+    ctx.strokeStyle='rgba(255,107,107,0.7)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(0),py(Pc)); ctx.lineTo(px(Qnew),py(Pc)); ctx.stroke();
+    ctx.strokeStyle='rgba(78,205,196,0.7)';
+    ctx.beginPath(); ctx.moveTo(px(0),py(Ps)); ctx.lineTo(px(Qnew),py(Ps)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,107,107,0.9)'; ctx.font='10px DM Mono'; ctx.textAlign='right';
+    ctx.fillText('Pc=$'+Pc.toFixed(0),px(0)-3,py(Pc)+4);
+    ctx.fillStyle='rgba(78,205,196,0.9)'; ctx.fillText('Ps=$'+Ps.toFixed(0),px(0)-3,py(Ps)+4);
+    ctx.strokeStyle='rgba(240,192,64,0.7)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(px(Qnew)+5,py(Pc)); ctx.lineTo(px(Qnew)+15,py(Pc));
+    ctx.moveTo(px(Qnew)+10,py(Pc)); ctx.lineTo(px(Qnew)+10,py(Ps));
+    ctx.moveTo(px(Qnew)+5,py(Ps)); ctx.lineTo(px(Qnew)+15,py(Ps)); ctx.stroke();
+    ctx.fillStyle='var(--accent)'; ctx.font='bold 10px Syne'; ctx.textAlign='left';
+    ctx.fillText('Tax=$'+t,px(Qnew)+18,(py(Pc)+py(Ps))/2+4);
+  }
+  ctx.fillStyle='rgba(240,192,64,0.7)'; ctx.beginPath(); ctx.arc(px(eqQ),py(eqP),5,0,Math.PI*2); ctx.fill();
+  if(t>0){
+    ctx.fillStyle='#f0c040'; ctx.beginPath(); ctx.arc(px(Qnew),py(Pc),6,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='rgba(240,192,64,0.4)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(px(Qnew),py(Pc)); ctx.lineTo(px(Qnew),oy+ch); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#f0c040'; ctx.font='10px DM Mono'; ctx.textAlign='center';
+    ctx.fillText('Q='+Qnew.toFixed(0),px(Qnew),oy+ch+18);
+    ctx.fillStyle='rgba(255,107,107,0.8)'; ctx.font='bold 9px Nunito'; ctx.textAlign='center';
+    ctx.fillText('DWL',px((Qnew+eqQ)/2),(py(Ps)+py(Pc)+py(eqP))/3);
+  }
+  ctx.fillStyle='#ff6b6b'; ctx.font='bold 12px Syne'; ctx.textAlign='left';
+  ctx.fillText('D',px(130),py(36));
+  ctx.fillStyle='#4ecdc4'; ctx.fillText('S',px(130),py(83));
+  if(t>0){
+    ctx.fillStyle='rgba(240,192,64,0.8)'; ctx.font='bold 9px Nunito'; ctx.textAlign='center';
+    ctx.fillText('Gov Revenue',px(Qnew/2),(py(Ps)+py(Pc))/2+4);
+  }
+}
+
+// ============================================================
+// INCOME TAX CALCULATOR
+// ============================================================
+const brackets = [
+  [11600, 0.10],
+  [47150, 0.12],
+  [100525, 0.22],
+  [191950, 0.24],
+  [243725, 0.32],
+  [609350, 0.35],
+  [Infinity, 0.37]
+];
+
+function calcIncome(val) {
+  val = parseInt(val);
+  document.getElementById('incomeVal').textContent = '$' + val.toLocaleString();
+  let tax = 0, prev = 0, marginal = 0.10;
+  for(const [limit, rate] of brackets) {
+    if(val > prev) {
+      const taxable = Math.min(val, limit) - prev;
+      tax += taxable * rate;
+      marginal = rate;
+    }
+    prev = limit;
+    if(prev >= val) break;
+  }
+  const eff = (tax/val*100).toFixed(1);
+  const home = val - tax;
+  document.getElementById('ir-gross').textContent = '$' + val.toLocaleString();
+  document.getElementById('ir-tax').textContent = '$' + Math.round(tax).toLocaleString();
+  document.getElementById('ir-eff').textContent = eff + '%';
+  document.getElementById('ir-marg').textContent = (marginal*100).toFixed(0) + '%';
+  document.getElementById('ir-home').textContent = '$' + Math.round(home).toLocaleString();
+  document.getElementById('ir-mo').textContent = '$' + Math.round(home/12).toLocaleString();
+}
+
+// ============================================================
+// TAX COMPARE CHART
+// ============================================================
+let tcChartInited=false;
+function initTaxCompareChart(){
+  if(tcChartInited) return; tcChartInited=true;
+  const c=document.getElementById('taxCompareChart');
+  if(!c) return;
+  c.width=700; c.height=320;
+  const ctx=c.getContext('2d');
+  const ox=60,oy=20,cw=600,ch=260;
+  clearAndStyle(ctx,700,320);
+  drawGrid(ctx,ox,oy,cw,ch,6,5);
+  drawAxes(ctx,ox,oy,cw,ch,'Annual Income','Tax Rate (% of income)');
+  const maxInc=300000;
+  function px(inc){return ox+(inc/maxInc)*cw;}
+  function py(rate){return oy+ch-(rate/0.40)*ch;}
+  // x axis labels
+  ctx.fillStyle='#6b7280'; ctx.font='10px DM Mono'; ctx.textAlign='center';
+  [0,50000,100000,150000,200000,250000,300000].forEach(v=>{
+    ctx.fillText('$'+(v/1000)+'k',px(v),oy+ch+18);
+  });
+  // y axis labels
+  ctx.textAlign='right';
+  [0,10,20,30,40].forEach(v=>{
+    ctx.fillText(v+'%',ox-6,py(v/100)+4);
+  });
+  // progressive income tax
+  ctx.strokeStyle='#4ecdc4'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let i=5000;i<=maxInc;i+=1000){
+    let tax=0,prev=0;
+    for(const [lim,rate] of brackets){
+      if(i>prev){tax+=(Math.min(i,lim)-prev)*rate;}
+      prev=lim; if(prev>=i)break;
+    }
+    const effRate=tax/i;
+    const x=px(i),y=py(effRate);
+    if(i===5000) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  // proportional 20%
+  ctx.strokeStyle='#f0c040'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(px(0),py(0.20)); ctx.lineTo(px(maxInc),py(0.20)); ctx.stroke();
+  // regressive: starts at 10%, asymptotes to 2%
+  ctx.strokeStyle='#ff6b6b'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let i=5000;i<=maxInc;i+=1000){
+    const rate=0.02+0.08*(5000/i);
+    const x=px(i),y=py(rate);
+    if(i===5000) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  // labels
+  ctx.fillStyle='#4ecdc4'; ctx.font='bold 11px Syne'; ctx.textAlign='left';
+  ctx.fillText('Progressive (Income Tax)',px(180000),py(0.19));
+  ctx.fillStyle='#f0c040';
+  ctx.fillText('Proportional (Flat 20%)',px(180000),py(0.215));
+  ctx.fillStyle='#ff6b6b';
+  ctx.fillText('Regressive (Sales Tax)',px(180000),py(0.055));
+}
+
+// ============================================================
+// QUIZ
+// ============================================================
+const quizData = [
+  {
+    q: "When a tax is placed on consumers, which curve shifts?",
+    opts: ["Supply shifts right","Demand shifts left","Supply shifts left","Demand shifts right"],
+    ans: 1,
+    exp: "A consumer tax makes buying more expensive at every price level, so demand shifts LEFT — consumers demand less at every price."
+  },
+  {
+    q: "When a tax is placed on producers, which curve shifts?",
+    opts: ["Demand shifts left","Supply shifts right","Supply shifts left","Demand shifts right"],
+    ans: 2,
+    exp: "A producer tax increases production costs, so producers need a higher price to supply the same amount — supply shifts LEFT."
+  },
+  {
+    q: "A $20 tax is legally placed on consumers. A $20 tax is legally placed on producers. Compared to each other, the economic outcomes are:",
+    opts: ["Consumer tax hurts consumers more","Producer tax hurts producers more","Identical — same prices, quantity, and deadweight loss","Consumer tax generates more government revenue"],
+    ans: 2,
+    exp: "Tax equivalence theorem! Both taxes create the same price wedge, same quantity reduction, same deadweight loss, and same gov revenue. The legal payer doesn't determine the economic burden."
+  },
+  {
+    q: "What is 'deadweight loss' in the context of taxation?",
+    opts: ["Money lost by the government","The weight of coins in tax payments","Value of trades that don't happen due to the tax","The share of tax paid by producers"],
+    ans: 2,
+    exp: "Deadweight loss (DWL) is the value of mutually beneficial trades that no longer occur due to the tax. It's a net loss to society — not transferred to anyone, just lost."
+  },
+  {
+    q: "In a progressive tax system, as your income rises:",
+    opts: ["You pay the same rate","You pay a lower rate","You pay a higher rate","You pay a fixed dollar amount"],
+    ans: 2,
+    exp: "Progressive = higher earners pay a higher RATE (percentage of income), not just a higher dollar amount. The U.S. federal income tax is progressive."
+  },
+  {
+    q: "You earn $50,000 and get a raise to $55,000, putting you in the next tax bracket (25%). How much of your income is taxed at 25%?",
+    opts: ["All $55,000","Only the $5,000 above the bracket threshold","Your entire raise of $5,000","Nothing — brackets don't work that way"],
+    ans: 1,
+    exp: "Correct! Only the amount ABOVE the bracket threshold is taxed at the new rate. Your income below the threshold is still taxed at lower rates. This is the marginal tax system."
+  },
+  {
+    q: "A sales tax is an example of what type of tax structure?",
+    opts: ["Progressive","Proportional","Regressive","Bracket-based"],
+    ans: 2,
+    exp: "Sales tax is regressive because it takes a larger percentage of income from lower earners. A poor family might spend 40% of income on taxable goods; a wealthy family spends far less proportionally."
+  },
+  {
+    q: "The 'incidence' of a tax refers to:",
+    opts: ["When the tax takes effect","Who legally pays the tax","Who actually bears the economic burden","How often the tax is collected"],
+    ans: 2,
+    exp: "Tax incidence = the ECONOMIC burden of a tax, which may differ from who legally pays. The burden splits between buyers and sellers based on the relative elasticities of supply and demand."
+  },
+  {
+    q: "If demand is very inelastic (buyers barely change quantity when price rises), a consumer tax will:",
+    opts: ["Place most of the burden on producers","Place most of the burden on consumers","Split the burden equally","Cause very large deadweight loss"],
+    ans: 1,
+    exp: "When demand is inelastic, buyers keep buying even at higher prices. Sellers know this, so they can pass more of the tax to consumers. Inelastic demand → consumers bear more burden."
+  },
+  {
+    q: "Which of the following would cause the supply curve to shift LEFT in the supply & demand model?",
+    opts: ["Technology improves","Input costs fall","A per-unit tax on producers","More firms enter the market"],
+    ans: 2,
+    exp: "A per-unit tax on producers increases their costs, requiring a higher price to supply the same amount — shifting supply LEFT (upward). Technology improvements and lower input costs shift supply RIGHT."
+  }
+];
+
+let qIdx=0, score=0, answered=false;
+
+function initQuiz(){
+  qIdx=0; score=0; answered=false;
+  renderQuestion();
+}
+
+function renderQuestion(){
+  if(qIdx>=quizData.length){ showResult(); return; }
+  const q=quizData[qIdx];
+  answered=false;
+  document.getElementById('quizNavBtn').style.display='none';
+  document.getElementById('quiz-area').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="badge badge-teal">Question ${qIdx+1} of ${quizData.length}</span>
+      <span class="badge badge-yellow">Score: ${score}/${qIdx}</span>
+    </div>
+    <div class="quiz-question">
+      <div class="quiz-q-text">${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o,i)=>`<button class="quiz-opt" onclick="answerQ(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="qfb"></div>
+    </div>`;
+}
+
+function answerQ(idx){
+  if(answered) return;
+  answered=true;
+  const q=quizData[qIdx];
+  const opts=document.querySelectorAll('.quiz-opt');
+  opts.forEach((o,i)=>{
+    if(i===q.ans) o.classList.add('correct');
+    else if(i===idx && idx!==q.ans) o.classList.add('wrong');
+    o.style.cursor='default';
+  });
+  const fb=document.getElementById('qfb');
+  const correct=idx===q.ans;
+  if(correct) score++;
+  fb.className='quiz-feedback show '+(correct?'correct':'wrong');
+  fb.innerHTML=(correct?'✅ Correct! ':'❌ Not quite. ')+q.exp;
+  document.getElementById('quizNavBtn').style.display='inline-block';
+  document.getElementById('quizNavBtn').textContent=qIdx<quizData.length-1?'Next Question →':'See Results 🏆';
+}
+
+function nextQuestion(){
+  qIdx++;
+  if(qIdx>=quizData.length){ showResult(); return; }
+  renderQuestion();
+}
+
+function showResult(){
+  document.getElementById('quizNavBtn').style.display='none';
+  const pct=Math.round(score/quizData.length*100);
+  let msg,color;
+  if(pct===100){msg='🏆 Perfect Score! You\'re an economics genius!';color='var(--accent)';}
+  else if(pct>=80){msg='🌟 Excellent work! You really understand taxes!';color='var(--accent3)';}
+  else if(pct>=60){msg='👍 Good effort! Review the modules to strengthen your knowledge.';color='var(--accent4)';}
+  else{msg='📚 Keep studying! The interactive charts will help you visualize these concepts.';color='var(--accent2)';}
+  document.getElementById('quiz-area').innerHTML=`
+    <div class="quiz-score">
+      <div class="score-num" style="color:${color}">${score}/${quizData.length}</div>
+      <div style="font-size:1.2rem;margin:0.5rem 0;color:${color}">${pct}%</div>
+      <div style="color:var(--muted);font-family:Nunito;font-weight:600;max-width:400px;margin:0 auto 2rem">${msg}</div>
+      <button class="btn-primary" onclick="initQuiz()" style="margin-right:1rem">Retake Quiz 🔄</button>
+      <button class="btn-sec" onclick="goPage('basics')">Review Material 📚</button>
+    </div>`;
+}
+</script>
+</body>
+</html>
